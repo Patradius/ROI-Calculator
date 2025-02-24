@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROI Calculator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Text:ital@0;1&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0px; background-color: #f4f4f4; position: relative; }
+        .header-wrapper { display: flex; justify-content: center; align-items: center; margin-bottom: 0px; }
+        .logo { width: 200px; height: 200px; margin-right: 40px; object-fit: cover; clip-path: inset(80px 0px 80px 0px); }
+        h2 { font-family: 'DM Serif Text', serif; font-size: 2.4rem; margin: 0; }
+        .container { background: #fff; padding: 20px; border-radius: 8px; max-width: 600px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; font-family: 'Roboto', sans-serif; font-size: 1.1rem; width: auto; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 8px; box-sizing: border-box; }
+        .button-container { text-align: center; margin-top: 20px; }
+        .confidence-buttons { display: flex; justify-content: space-between; gap: 10px; }
+        .confidence-buttons button { flex: 1; padding: 10px; background-color: #F5F4F8; color: black; font-weight: bold; border: none; border-radius: 25px; cursor: pointer; font-size: 1.2rem; transition: background-color 0.3s, border 0.3s; }
+        .confidence-buttons button:hover { background-color: #E5E4E8; }
+        .confidence-buttons button.active { background-color: #E5E4E8; border: 3px solid #FFD700; }
+        button.calculate { width: 50%; padding: 10px; background-color: #DC0028; color: white; font-weight: bold; border: none; border-radius: 25px; cursor: pointer; font-size: 1.2rem; margin-top: 20px; }
+        button.calculate:hover { background-color: #c00020; }
+        .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.3); z-index: 1000; max-width: 500px; width: 90%; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { margin: 0; font-family: 'DM Serif Text', serif; }
+        .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+        .modal-content { text-align: center; margin-top: 20px; }
+        .modal-content .total-savings { font-family: 'DM Serif Text', serif; font-size: 2.5rem; margin: 20px 0; }
+        .modal-content p { font-family: 'Roboto', sans-serif; margin: 10px 0; font-size: 1.1rem; }
+        .try-btn { display: block; width: 50%; padding: 12px; background-color: #DC0028; color: white; font-weight: bold; border: none; border-radius: 25px; text-align: center; font-size: 1.2rem; text-decoration: none; margin: 20px auto 0; }
+        .try-btn:hover { background-color: #c00020; }
+        footer { text-align: center; margin-top: 30px; font-size: 0.9em; color: #666; }
+        footer a { color: #b51f1f; text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <div class="header-wrapper">
+        <img src="https://www.creditexpo.nl/wp-content/uploads/2024/09/Logo-Credit-IQ-CIQ-no-bg-2048x2048.png" alt="Credit IQ Logo" class="logo">
+        <h2>ROI Calculator</h2>
+    </div>
+
+    <div class="container">
+        <div class="form-group">
+            <label for="revenue">Yearly Revenue:</label>
+            <input type="text" id="revenue" placeholder="Enter yearly revenue">
+        </div>
+        <div class="form-group">
+            <label for="dso">Current Days Sales Outstanding (DSO):</label>
+            <input type="number" id="dso" placeholder="Enter current DSO">
+        </div>
+        <div class="form-group">
+            <label for="eb">Estimated Unrecoverable Debts %:</label>
+            <input type="number" id="eb" placeholder="Enter EB%">
+        </div>
+        <div class="form-group">
+            <label for="invoices">Average Monthly Invoices Raised:</label>
+            <input type="number" id="invoices" placeholder="Enter average monthly invoices">
+        </div>
+        <div class="form-group">
+            <label for="salary">Yearly Salary of AR Staff:</label>
+            <input type="text" id="salary" placeholder="Enter yearly salary of AR staff">
+        </div>
+        <input type="hidden" id="cf" value="30">
+        <div class="form-group">
+            <label>Calculation Confidence:</label>
+            <div class="confidence-buttons">
+                <button onclick="setConfidence(20, this)">Conservative</button>
+                <button class="active" onclick="setConfidence(30, this)">Average</button>
+                <button onclick="setConfidence(40, this)">High</button>
+            </div>
+        </div>
+        <div class="button-container">
+            <button class="calculate" onclick="calculateSavings()">Calculate Savings</button>
+        </div>
+    </div>
+
+    <div class="modal" id="resultModal">
+        <div class="modal-header">
+            <h3>1-Year Savings</h3>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-content">
+            <div class="total-savings" id="modalTotalSavings">€0,00</div>
+            <p><strong>Monthly Cost of Delay:</strong> <span id="monthlyCost">€0,00</span></p>
+            <p><strong>Time Saved Each Month:</strong> <span id="timeSaved">0 days</span></p>
+            <p><strong>Estimated DSO:</strong> <span id="estimatedDSO">0</span></p>
+            <a href="https://app.credit-iq.com?prompt=signup" class="try-btn" target="_blank">Probeer Gratis</a>
+        </div>
+    </div>
+
+    <footer>
+        <p>Powered by <a href="https://www.atradiuscollections.com" target="_blank">Atradius Collections</a></p>
+    </footer>
+
+    <script>
+        function formatInput(input) {
+            let value = input.value.replace(/[^\d,]/g, '').replace(/,/g, '');
+            if (!value) return input.value = '';
+            value = parseInt(value, 10).toString();
+            input.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        document.getElementById('revenue').addEventListener('input', function() {
+            formatInput(this);
+        });
+
+        document.getElementById('salary').addEventListener('input', function() {
+            formatInput(this);
+        });
+
+        function parseFormattedNumber(value) {
+            return parseFloat(value.replace(/\./g, '').replace(/,/g, '.')) || 0;
+        }
+
+        function setConfidence(value, button) {
+            document.getElementById('cf').value = value;
+            const buttons = document.querySelectorAll('.confidence-buttons button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            if (button) button.classList.add('active');
+        }
+
+        function calculateSavings() {
+            const R_y = parseFormattedNumber(document.getElementById('revenue').value);
+            const DSO = parseFloat(document.getElementById('dso').value);
+            const EB = parseFloat(document.getElementById('eb').value) / 100;
+            const CF = parseFloat(document.getElementById('cf').value) / 100;
+            const I_m = parseFloat(document.getElementById('invoices').value);
+            const salary = parseFormattedNumber(document.getElementById('salary').value);
+
+            if (isNaN(R_y) || isNaN(DSO) || isNaN(EB) || isNaN(CF) || isNaN(I_m) || isNaN(salary)) {
+                alert("Please fill in all fields correctly.");
+                return;
+            }
+
+            const AR = (R_y / 365) * DSO;
+            const cashFlowSavings = AR * CF;
+            const BDE = AR * EB;
+            const staffEfficiencySavings = (salary / (I_m * 12)) * CF * I_m;
+            const totalSavings = cashFlowSavings + BDE + staffEfficiencySavings;
+
+            const monthlyCostOfDelay = (R_y / 12) * (DSO / 365);
+            const timeSavedEachMonth = DSO * CF;
+
+            document.getElementById('modalTotalSavings').innerText = `€${totalSavings.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById('monthlyCost').innerText = `€${monthlyCostOfDelay.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById('timeSaved').innerText = `${timeSavedEachMonth.toFixed(2)} days`;
+            document.getElementById('estimatedDSO').innerText = `${(DSO - (DSO * CF)).toFixed(2)}`;
+
+            document.getElementById('resultModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('resultModal').style.display = 'none';
+        }
+    </script>
+
+</body>
+</html>
+
+
